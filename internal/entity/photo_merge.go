@@ -21,8 +21,31 @@ func (m *Photo) ResolvePrimary() error {
 }
 
 // Identical returns identical photos that can be merged.
-func (m *Photo) Identical(includeMeta, includeUuid bool) (identical Photos, err error) {
+func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical Photos, err error) {
 	if m.PhotoStack == IsUnstacked || m.PhotoName == "" {
+		return identical, nil
+	}
+
+	// find visually similar images (when "filediff" is the same)
+	var foundfile File
+	log.Debugf("KEVIN looking if FILEDIFF %d EXISTS", myfile.FileDiff)
+
+	Db().LogMode(true)
+	if err := Db().
+		Table("files").
+		Select(`files.*`).
+		Where("files.file_diff = ? AND photo_id <> ? AND files.deleted_at IS NULL", myfile.FileDiff, myfile.PhotoID).First(&foundfile).Error; err != nil {
+
+		log.Debugf("KEVIN FILEDIFF ERROR / NO MATCH")
+	} else {
+		log.Debugf("KEVIN FILEDIFF PHOTOID %d EXISTS: %d", myfile.PhotoID, foundfile.PhotoID)
+		if err := Db().
+			Where("photos.id = ? OR photos.id = ?", myfile.PhotoID, foundfile.PhotoID).
+			Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
+			log.Debug("KEVIN ERROR REturNING IDENTICALS")
+			return identical, err
+		}
+		log.Debug("KEVIN OK REturNING IDENTICALS")
 		return identical, nil
 	}
 
@@ -63,11 +86,13 @@ func (m *Photo) Identical(includeMeta, includeUuid bool) (identical Photos, err 
 }
 
 // Merge photo with identical ones.
-func (m *Photo) Merge(mergeMeta, mergeUuid bool) (original Photo, merged Photos, err error) {
+func (m *Photo) Merge(myfile File, mergeMeta, mergeUuid bool) (original Photo, merged Photos, err error) {
 	photoMergeMutex.Lock()
 	defer photoMergeMutex.Unlock()
 
-	identical, err := m.Identical(mergeMeta, mergeUuid)
+	identical, err := m.Identical(myfile, mergeMeta, mergeUuid)
+
+	log.Debugf("KEVIN IDENTICAL COuNT %d", len(identical))
 
 	if len(identical) < 2 || err != nil {
 		return Photo{}, merged, err
