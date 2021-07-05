@@ -27,10 +27,10 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	}
 
 	// find visually similar images (when "filediff" is the same)
-	log.Debugf("LOOKING FOR EXISTING FILE DIFF: %d", myfile.FileDiff)
-	Db().LogMode(true)
+	log.Debugf("LOOKING FOR EXISTING FILE DIFF: %d", myfile.FileDiff) //myfile.FileColors, myfile.FileLuminance)
 	if err := Db().
-		Where("id IN (SELECT photo_id FROM files WHERE files.file_diff = ? AND files.deleted_at IS NULL)", myfile.FileDiff).
+		Joins("JOIN files ON files.photo_id = photos.id AND files.deleted_at IS NULL AND files.file_diff = ?", myfile.FileDiff).
+		// Where("id IN (SELECT photo_id FROM files WHERE files.file_diff = ? AND files.deleted_at IS NULL)", myfile.FileDiff).
 		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
 		log.Error("DB ERROR LOOKING FOR EXISTING FILE DIFF!")
 		// return identical, err
@@ -40,7 +40,6 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	} else {
 		log.Debug("FILE DIFF IS NEW, NEVER SEEN BEFORE")
 	}
-	Db().LogMode(false)
 
 	switch {
 	case includeMeta && includeUuid && m.HasLocation() && m.TakenSrc == SrcMeta && rnd.IsUUID(m.UUID):
@@ -83,7 +82,9 @@ func (m *Photo) Merge(myfile File, mergeMeta, mergeUuid bool) (original Photo, m
 	photoMergeMutex.Lock()
 	defer photoMergeMutex.Unlock()
 
+	Db().LogMode(true)
 	identical, err := m.Identical(myfile, mergeMeta, mergeUuid)
+	Db().LogMode(false)
 
 	if len(identical) < 2 || err != nil {
 		return Photo{}, merged, err
