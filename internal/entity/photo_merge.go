@@ -29,7 +29,22 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	// find visually similar images (when "filediff" is the same)
 	log.Debugf("LOOKING FOR EXISTING FILE DIFF: %d", myfile.FileDiff)
 	if err := Db().
-		Where("id IN (SELECT photo_id FROM files WHERE files.file_diff = ? AND files.deleted_at IS NULL)", myfile.FileDiff).
+		Where(`id IN (
+			SELECT photo_id from (
+				SELECT * FROM (
+					SELECT
+						photo_id,
+						original_name,
+						file_colors,
+						BIT_COUNT(file_colors ^ ?) as col_hamming,
+						file_luminance,
+						BIT_COUNT(file_luminance ^ ?) as lum_hamming
+					FROM files
+				) as x
+				WHERE x.col_hamming < 1 AND x.lum_hamming < 1
+			) as y
+		)`,
+			myfile.FileColors, myfile.FileLuminance).
 		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
 		log.Error("DB ERROR LOOKING FOR EXISTING FILE DIFF!")
 		// return identical, err
