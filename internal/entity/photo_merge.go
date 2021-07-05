@@ -27,26 +27,17 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	}
 
 	// find visually similar images (when "filediff" is the same)
-	var foundfile File
-	log.Debugf("KEVIN looking if FILEDIFF %d EXISTS", myfile.FileDiff)
-
-	Db().LogMode(true)
+	log.Debugf("LOOKING FOR EXISTING FILE DIFF: %d", myfile.FileDiff)
 	if err := Db().
-		Table("files").
-		Select(`files.*`).
-		Where("files.file_diff = ? AND photo_id <> ? AND files.deleted_at IS NULL", myfile.FileDiff, myfile.PhotoID).First(&foundfile).Error; err != nil {
-
-		log.Debugf("KEVIN FILEDIFF ERROR / NO MATCH")
-	} else {
-		log.Debugf("KEVIN FILEDIFF PHOTOID %d EXISTS: %d", myfile.PhotoID, foundfile.PhotoID)
-		if err := Db().
-			Where("photos.id = ? OR photos.id = ?", myfile.PhotoID, foundfile.PhotoID).
-			Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
-			log.Debug("KEVIN ERROR REturNING IDENTICALS")
-			return identical, err
-		}
-		log.Debug("KEVIN OK REturNING IDENTICALS")
+		Where("id IN (SELECT photo_id FROM files WHERE files.file_diff = ? AND files.deleted_at IS NULL)", myfile.FileDiff).
+		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
+		log.Error("DB ERROR LOOKING FOR EXISTING FILE DIFF!")
+		// return identical, err
+	} else if len(identical) > 1 {
+		log.Debug("FOUND FILE DIFF ALREADY EXISTS")
 		return identical, nil
+	} else {
+		log.Debug("FILE DIFF IS NEW, NEVER SEEN BEFORE")
 	}
 
 	switch {
@@ -90,9 +81,9 @@ func (m *Photo) Merge(myfile File, mergeMeta, mergeUuid bool) (original Photo, m
 	photoMergeMutex.Lock()
 	defer photoMergeMutex.Unlock()
 
+	Db().LogMode(true)
 	identical, err := m.Identical(myfile, mergeMeta, mergeUuid)
-
-	log.Debugf("KEVIN IDENTICAL COuNT %d", len(identical))
+	Db().LogMode(false)
 
 	if len(identical) < 2 || err != nil {
 		return Photo{}, merged, err
