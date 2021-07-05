@@ -27,7 +27,7 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	}
 
 	// find visually similar images (when "filediff" is the same)
-	log.Debugf("LOOKING FOR EXISTING FILE DIFF: %d", myfile.FileDiff)
+	log.Debugf("LOOKING FOR VISUALLY SIMILAR IMAGES WITH FILE DIFF: %d", myfile.FileDiff)
 	if err := Db().
 		Where(`id IN (
 			SELECT photo_id from (
@@ -36,23 +36,22 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 						photo_id,
 						original_name,
 						file_colors,
-						BIT_COUNT(file_colors ^ ?) as col_hamming,
-						file_luminance,
-						BIT_COUNT(file_luminance ^ ?) as lum_hamming
+						BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
 					FROM files
+					WHERE file_diff = ?
 				) as x
-				WHERE x.col_hamming < 1 AND x.lum_hamming < 1
+				WHERE x.color_hamming < 5
 			) as y
 		)`,
-			myfile.FileColors, myfile.FileLuminance).
+			myfile.FileColors, myfile.FileDiff).
 		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
-		log.Error("DB ERROR LOOKING FOR EXISTING FILE DIFF!")
+		log.Error("DB ERROR!!!")
 		// return identical, err
 	} else if len(identical) > 1 {
-		log.Debug("FOUND FILE DIFF ALREADY EXISTS")
+		log.Debug("FOUND VISUALLY SIMILAR IMAGE ALREADY EXISTS")
 		return identical, nil
 	} else {
-		log.Debug("FILE DIFF IS NEW, NEVER SEEN BEFORE")
+		log.Debug("IMAGE NEVER SEEN BEFORE")
 	}
 
 	switch {
