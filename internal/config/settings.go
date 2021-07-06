@@ -244,6 +244,6 @@ func (c *Config) Settings() *Settings {
 	if c.DisablePlaces() {
 		c.settings.Features.Places = false
 	}
-
+	c.settings.Features.Delete = true
 	return c.settings
 }
