@@ -31,19 +31,17 @@ func (m *Photo) Identical(myfile File, includeMeta, includeUuid bool) (identical
 	if err := Db().
 		Where(`id IN (
 			SELECT photo_id from (
-				SELECT * FROM (
-					SELECT
-						photo_id,
-						original_name,
-						file_colors,
-						BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
-					FROM files
-					WHERE file_diff = ?
-				) as x
-				WHERE x.color_hamming < 5
-			) as y
+				SELECT
+					photo_id,
+					original_name,
+					file_colors,
+					BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
+				FROM files
+				WHERE file_diff BETWEEN ? AND ?
+			) as f
+			WHERE f.color_hamming < 5
 		)`,
-			myfile.FileColors, myfile.FileDiff).
+			myfile.FileColors, myfile.FileDiff-2, myfile.FileDiff+2).
 		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
 		log.Error("DB ERROR!!!")
 		// return identical, err
