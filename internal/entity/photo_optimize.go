@@ -20,7 +20,7 @@ func (m *Photo) Optimize(mergeMeta, mergeUuid, estimatePlace bool) (updated bool
 		m.UpdateLocation()
 	}
 
-	if original, photos, err := m.Merge(m.Files[0], mergeMeta, mergeUuid); err != nil {
+	if original, photos, err := m.Merge(mergeMeta, mergeUuid); err != nil {
 		return updated, merged, err
 	} else if len(photos) > 0 && original.ID == m.ID {
 		merged = photos
