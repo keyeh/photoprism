@@ -116,6 +116,21 @@
               >
               </v-checkbox>
             </v-flex>
+
+            <v-flex xs12 sm4 class="px-2 pb-2 pt-2">
+              <v-checkbox
+                  v-model="settings.stack.phash"
+                  :disabled="busy"
+                  class="ma-0 pa-0 input-stack-phash"
+                  color="secondary-dark"
+                  :label="$gettext('Visually Similar')"
+                  :hint="$gettext('Files that are similar by comparing file diff and file colors.')"
+                  prepend-icon="remove_red_eye"
+                  persistent-hint
+                  @change="onChange"
+              >
+              </v-checkbox>
+            </v-flex>
           </v-layout>
         </v-card-actions>
       </v-card>

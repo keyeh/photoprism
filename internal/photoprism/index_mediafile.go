@@ -728,7 +728,10 @@ func (ind *Index) MediaFile(m *MediaFile, o IndexOptions, originalName string) (
 	if !o.Stack || photo.PhotoStack == entity.IsUnstacked {
 		// Do nothing
 		/////////////merge (stack)
-	} else if original, merged, err := photo.Merge(Config().Settings().StackMeta(), Config().Settings().StackUUID()); err != nil {
+	} else if original, merged, err := photo.Merge(
+		Config().Settings().StackMeta(),
+		Config().Settings().StackUUID(),
+		Config().Settings().StackPhash()); err != nil {
 		log.Errorf("index: %s in %s (merge)", err.Error(), logName)
 	} else if len(merged) == 1 && original.ID == photo.ID {
 		log.Infof("index: merged one existing photo with %s", logName)

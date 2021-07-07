@@ -71,9 +71,10 @@ type IndexSettings struct {
 
 // StackSettings represents settings for files that belong to the same photo.
 type StackSettings struct {
-	UUID bool `json:"uuid" yaml:"UUID"`
-	Meta bool `json:"meta" yaml:"Meta"`
-	Name bool `json:"name" yaml:"Name"`
+	UUID  bool `json:"uuid" yaml:"UUID"`
+	Meta  bool `json:"meta" yaml:"Meta"`
+	Name  bool `json:"name" yaml:"Name"`
+	Phash bool `json:"phash" yaml:"Phash"`
 }
 
 // ShareSettings represents content sharing settings.
@@ -146,9 +147,10 @@ func NewSettings() *Settings {
 			Convert: true,
 		},
 		Stack: StackSettings{
-			UUID: true,
-			Meta: true,
-			Name: false,
+			UUID:  true,
+			Meta:  true,
+			Name:  false,
+			Phash: true,
 		},
 		Share: ShareSettings{
 			Title: "",
@@ -177,6 +179,11 @@ func (s Settings) StackUUID() bool {
 // StackMeta tests if files should be stacked based on their place and time metadata.
 func (s Settings) StackMeta() bool {
 	return s.Stack.Meta
+}
+
+// StackPhash tests if files should be stacked based on file diff and file color similarity
+func (s Settings) StackPhash() bool {
+	return s.Stack.Phash
 }
 
 // Load user settings from file.

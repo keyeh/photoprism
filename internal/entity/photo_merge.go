@@ -21,37 +21,39 @@ func (m *Photo) ResolvePrimary() error {
 }
 
 // Identical returns identical photos that can be merged.
-func (m *Photo) Identical(includeMeta, includeUuid bool) (identical Photos, err error) {
+func (m *Photo) Identical(includeMeta, includeUuid, includePhash bool) (identical Photos, err error) {
 	if m.PhotoStack == IsUnstacked || m.PhotoName == "" {
 		return identical, nil
 	}
 
-	log.Debugf("LOOKING FOR VISUALLY SIMILAR IMAGES")
-	var myfile File // get this photo's file
-	if err := Db().Where("photo_id = ?", m.ID).First(&myfile).Error; err != nil {
-		log.Error("DB ERROR IN FILE QUERY!")
-	} else if err := Db().
-		// find photos with similar files, using file diff and color hamming distance
-		Where(`id IN (
-			SELECT photo_id from (
-				SELECT
-					photo_id,
-					original_name,
-					file_colors,
-					BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
-				FROM files
-				WHERE file_diff BETWEEN ? AND ?
-			) as f
-			WHERE f.color_hamming < 5
-		)`,
-			myfile.FileColors, myfile.FileDiff-2, myfile.FileDiff+2).
-		Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
-		log.Error("DB ERROR IN HAMMING DIFF QUERY!")
-	} else if len(identical) > 1 {
-		log.Debug("FOUND VISUALLY SIMILAR IMAGE ALREADY EXISTS")
-		return identical, nil
-	} else {
-		log.Debug("NO VIUSALLY SIMILAR IMAGES FOUND")
+	if includePhash {
+		log.Debugf("LOOKING FOR VISUALLY SIMILAR IMAGES")
+		var myfile File // get this photo's file
+		if err := Db().Where("photo_id = ?", m.ID).First(&myfile).Error; err != nil {
+			log.Error("DB ERROR IN FILE QUERY!")
+		} else if err := Db().
+			// find photos with similar files, using file diff and color hamming distance
+			Where(`id IN (
+					SELECT photo_id from (
+						SELECT
+							photo_id,
+							original_name,
+							file_colors,
+							BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
+						FROM files
+						WHERE file_diff BETWEEN ? AND ?
+					) as f
+					WHERE f.color_hamming < 5
+				)`,
+				myfile.FileColors, myfile.FileDiff-2, myfile.FileDiff+2).
+			Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
+			log.Error("DB ERROR IN HAMMING DIFF QUERY!")
+		} else if len(identical) > 1 {
+			log.Debug("FOUND VISUALLY SIMILAR IMAGE ALREADY EXISTS")
+			return identical, nil
+		} else {
+			log.Debug("NO VIUSALLY SIMILAR IMAGES FOUND")
+		}
 	}
 
 	switch {
@@ -91,12 +93,12 @@ func (m *Photo) Identical(includeMeta, includeUuid bool) (identical Photos, err 
 }
 
 // Merge photo with identical ones.
-func (m *Photo) Merge(mergeMeta, mergeUuid bool) (original Photo, merged Photos, err error) {
+func (m *Photo) Merge(mergeMeta, mergeUuid, mergePhash bool) (original Photo, merged Photos, err error) {
 	photoMergeMutex.Lock()
 	defer photoMergeMutex.Unlock()
 
 	Db().LogMode(true)
-	identical, err := m.Identical(mergeMeta, mergeUuid)
+	identical, err := m.Identical(mergeMeta, mergeUuid, mergePhash)
 	Db().LogMode(false)
 
 	if len(identical) < 2 || err != nil {

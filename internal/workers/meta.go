@@ -77,7 +77,7 @@ func (worker *Meta) Start(delay time.Duration) (err error) {
 
 			done[photo.PhotoUID] = true
 
-			updated, merged, err := photo.Optimize(settings.StackMeta(), settings.StackUUID(), settings.Features.Estimates)
+			updated, merged, err := photo.Optimize(settings.StackMeta(), settings.StackUUID(), settings.StackPhash(), settings.Features.Estimates)
 
 			if err != nil {
 				log.Errorf("metadata: %s (optimize photo)", err)
