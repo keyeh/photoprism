@@ -28,6 +28,9 @@ services:
     volumes:
       - ".:/go/src/github.com/photoprism/photoprism"
       - "go-mod:/go/pkg/mod"
+      - "/mnt/c/Users/Kevin/Desktop/p:/originals:ro"
+      # Permanent storage for settings, index & sidecar files (DON'T REMOVE):
+      # - "./storage:/photoprism/storage"
     shm_size: "2gb"
     environment:
       UID: ${UID:-1000}
@@ -39,7 +42,7 @@ services:
       PHOTOPRISM_SITE_DESCRIPTION: "Open-Source Photo Management"
       PHOTOPRISM_SITE_AUTHOR: "@photoprism_app"
       PHOTOPRISM_DEBUG: "true"
-      PHOTOPRISM_READONLY: "false"
+      PHOTOPRISM_READONLY: "true"
       PHOTOPRISM_PUBLIC: "true"
       PHOTOPRISM_EXPERIMENTAL: "true"
       PHOTOPRISM_SERVER_MODE: "debug"
@@ -56,8 +59,9 @@ services:
       PHOTOPRISM_ADMIN_PASSWORD: "photoprism" # The initial admin password (min 4 characters)
       PHOTOPRISM_ASSETS_PATH: "/go/src/github.com/photoprism/photoprism/assets"
       PHOTOPRISM_STORAGE_PATH: "/go/src/github.com/photoprism/photoprism/storage"
-      PHOTOPRISM_ORIGINALS_PATH: "/go/src/github.com/photoprism/photoprism/storage/originals"
+      PHOTOPRISM_ORIGINALS_PATH: "/originals"
       PHOTOPRISM_IMPORT_PATH: "/go/src/github.com/photoprism/photoprism/storage/import"
+      PHOTOPRISM_ORIGINALS_LIMIT: 5000               # File size limit for originals in MB (increase for high-res video)
       PHOTOPRISM_DISABLE_BACKUPS: "false"     # Don't backup photo and album metadata to YAML files
       PHOTOPRISM_DISABLE_WEBDAV: "false"      # Disables built-in WebDAV server
       PHOTOPRISM_DISABLE_SETTINGS: "false"    # Disables Settings in Web UI
