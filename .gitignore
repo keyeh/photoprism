@@ -10,6 +10,7 @@ database
 /frontend/tests/*.html
 /frontend/tests/*.log
 /frontend/tests/screenshots
+/assets/facenet
 /assets/nasnet
 /assets/nsfw
 /assets/static/build/
