@@ -39,13 +39,14 @@ func (m *Photo) Identical(includeMeta, includeUuid, includePhash bool) (identica
 							photo_id,
 							original_name,
 							file_colors,
-							BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming
+							BIT_COUNT(CONV(file_colors,16,10) ^ CONV(?,16,10)) as color_hamming,
+							BIT_COUNT(CONV(file_luminance,16,10) ^ CONV(?,16,10)) as lumi_hamming
 						FROM files
 						WHERE file_diff BETWEEN ? AND ?
 					) as f
-					WHERE f.color_hamming < 5
+					WHERE f.color_hamming < 5 AND f.lumi_hamming < 3
 				)`,
-				myfile.FileColors, myfile.FileDiff-2, myfile.FileDiff+2).
+				myfile.FileColors, myfile.FileLuminance, myfile.FileDiff-2, myfile.FileDiff+2).
 			Order("photo_quality DESC, id ASC").Find(&identical).Error; err != nil {
 			log.Error("DB ERROR IN HAMMING DIFF QUERY!")
 		} else if len(identical) > 1 {
